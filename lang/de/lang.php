@@ -14,6 +14,14 @@ $lang['todo']      = 'Zu-Erledigen-Box';
 
 $lang['clear']     = 'Floats beseitigen';
 
+$lang['centeralign'] = 'zentriert ausrichten';
+$lang['rightalign']  = 'rechtsbündig ausrichten';
+$lang['justify']     = 'Blocksatz';
+$lang['spoiler']     = 'Spoiler (versteckter Text)';
+$lang['indent']      = 'Einzug';
+$lang['tabs']        = 'Registerkarten';
+$lang['button']      = 'Schaltflächen-Link';
+
 $lang['em']        = 'wichtig';
 $lang['hi']        = 'markieren';
 $lang['lo']        = 'weniger wichtig';

@@ -8,12 +8,12 @@
  * @author     Anika Henke <anika@selfthinker.org>
  */
 
+if (!defined('DOKU_INC')) die();
+
 class syntax_plugin_wrap_spanwrap extends syntax_plugin_wrap_span {
 
     protected $special_pattern = '<wrap\b[^>\r\n]*?/>';
     protected $entry_pattern   = '<wrap\b.*?>(?=.*?</wrap>)';
     protected $exit_pattern    = '</wrap>';
 
-
 }
-

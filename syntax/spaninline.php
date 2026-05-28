@@ -8,6 +8,8 @@
  * @author     Anika Henke <anika@selfthinker.org>
  */
 
+if (!defined('DOKU_INC')) die();
+
 class syntax_plugin_wrap_spaninline extends syntax_plugin_wrap_span {
 
     protected $special_pattern = '<inline\b[^>\r\n]*?/>';
@@ -15,4 +17,3 @@ class syntax_plugin_wrap_spaninline extends syntax_plugin_wrap_span {
     protected $exit_pattern    = '</inline>';
 
 }
-

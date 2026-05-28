@@ -6,18 +6,22 @@
  * @author     Anika Henke <anika@selfthinker.org>
  */
 
-class helper_plugin_wrap extends DokuWiki_Plugin {
-    static protected $boxes = array ('wrap_box', 'wrap_danger', 'wrap_warning', 'wrap_caution', 'wrap_notice', 'wrap_safety',
-                                     'wrap_info', 'wrap_important', 'wrap_alert', 'wrap_tip', 'wrap_help', 'wrap_todo',
-                                     'wrap_download', 'wrap_hi', 'wrap_spoiler');
-    static protected $paragraphs = array ('wrap_leftalign', 'wrap_rightalign', 'wrap_centeralign', 'wrap_justify');
+if (!defined('DOKU_INC')) die();
 
-	/* list of languages which normally use RTL scripts */
-	static protected $rtllangs = array('ar','dv','fa','ha','he','ks','ku','ps','ur','yi','arc');
-	/* list of right-to-left scripts (may override the language defaults to rtl) */
-	static protected $rtlscripts = array('arab','thaa','hebr','deva','shrd');
-	/* selection of left-to-right scripts (may override the language defaults to ltr) */
-	static protected $ltrscripts = array('latn','cyrl','grek','hebr','cyrs','armn');
+class helper_plugin_wrap extends DokuWiki_Plugin {
+    protected static $boxes = [
+        'wrap_box', 'wrap_danger', 'wrap_warning', 'wrap_caution', 'wrap_notice', 'wrap_safety',
+        'wrap_info', 'wrap_important', 'wrap_alert', 'wrap_tip', 'wrap_help', 'wrap_todo',
+        'wrap_download', 'wrap_hi', 'wrap_spoiler',
+    ];
+    protected static $paragraphs = ['wrap_leftalign', 'wrap_rightalign', 'wrap_centeralign', 'wrap_justify'];
+
+    /* list of languages which normally use RTL scripts */
+    protected static $rtllangs = ['ar','dv','fa','ha','he','ks','ku','ps','ur','yi','arc'];
+    /* list of right-to-left scripts (may override the language defaults to rtl) */
+    protected static $rtlscripts = ['arab','thaa','hebr','deva','shrd'];
+    /* selection of left-to-right scripts (may override the language defaults to ltr) */
+    protected static $ltrscripts = ['latn','cyrl','grek','hebr','cyrs','armn'];
 
     static $box_left_pos = 0;
     static $box_right_pos = 0;
@@ -27,22 +31,26 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
     protected $column_count = 0;
 
     /**
-     * get attributes (pull apart the string between '<wrap' and '>')
-     *  and identify classes, width, lang and dir
+     * Get attributes (pull apart the string between '<wrap' and '>')
+     * and identify classes, width, lang and dir
      *
      * @author Anika Henke <anika@selfthinker.org>
      * @author Christopher Smith <chris@jalakai.co.uk>
      *   (parts taken from http://www.dokuwiki.org/plugin:box)
+     *
+     * @param string $data        Attribute string from wrap tag
+     * @param bool   $useNoPrefix Whether to apply the noPrefix config option
+     * @return array
      */
-    function getAttributes($data, $useNoPrefix=true) {
+    public function getAttributes($data, $useNoPrefix = true) {
 
-        $attr = array(
-            'lang' => null,
+        $attr = [
+            'lang'  => null,
             'class' => null,
             'width' => null,
-            'id' => null,
-            'dir' => null
-        );
+            'id'    => null,
+            'dir'   => null,
+        ];
         $tokens = preg_split('/\s+/', $data, 9);
 
         // anonymous function to convert inclusive comma separated items to regex pattern
@@ -107,13 +115,13 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
 
 			// turn the language code into an array of components:
 			$arr = explode('-', $attr['lang']);
-			
+
 			// is the language iso code (first field) in the list of RTL languages?
 			$rtl = in_array($arr[0], self::$rtllangs);
 
 			// is there a Script specified somewhere which overrides the text direction?
 			$rtl = ($rtl xor (bool) array_intersect( $rtl ? self::$ltrscripts : self::$rtlscripts, $arr));
-			
+
 			$attr['dir'] = ( $rtl ? 'rtl' : 'ltr' );
 		}
 
@@ -121,24 +129,26 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
     }
 
     /**
-     * build attributes (write out classes, width, lang and dir)
+     * Build attributes (write out classes, width, lang and dir)
+     *
+     * @param string $data     Attribute string from wrap tag
+     * @param string $addClass Additional CSS classes to append
+     * @param string $mode     Render mode ('xhtml' or 'odt')
+     * @return string
      */
-    function buildAttributes($data, $addClass='', $mode='xhtml') {
+    public function buildAttributes($data, $addClass = '', $mode = 'xhtml') {
 
         $attr = $this->getAttributes($data);
         $out = '';
 
         if ($mode=='xhtml') {
-            if($attr['class']) $out .= ' class="'.hsc($attr['class']).' '.$addClass.'"';
-            // if used in other plugins, they might want to add their own class(es)
-            elseif($addClass)  $out .= ' class="'.$addClass.'"';
-            if($attr['id'])    $out .= ' id="'.hsc($attr['id']).'"';
-            // width on spans normally doesn't make much sense, but in the case of floating elements it could be used
-            if($attr['width']) {
-                if (strpos($attr['width'],'%') !== false) {
+            if ($attr['class']) $out .= ' class="'.hsc($attr['class']).' '.$addClass.'"';
+            elseif ($addClass)  $out .= ' class="'.$addClass.'"';
+            if ($attr['id'])    $out .= ' id="'.hsc($attr['id']).'"';
+            if ($attr['width']) {
+                if (str_contains($attr['width'], '%')) {
                     $out .= ' style="width: '.hsc($attr['width']).';"';
                 } else {
-                    // anything but % should be 100% when the screen gets smaller
                     $out .= ' style="width: '.hsc($attr['width']).'; max-width: 100%;"';
                 }
             }
@@ -150,10 +160,14 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
     }
 
     /**
-     * render ODT element, Open
-     * (get Attributes, select ODT element that fits, render it, return element name)
+     * Render ODT element open — get attributes, select fitting ODT element, render it, return element name
+     *
+     * @param Doku_Renderer $renderer
+     * @param string        $HTMLelement 'div' or 'span'
+     * @param string        $data        Attribute string from wrap tag
+     * @return string Element type pushed onto the type stack
      */
-    function renderODTElementOpen($renderer, $HTMLelement, $data) {
+    public function renderODTElementOpen($renderer, $HTMLelement, $data) {
         $attr = $this->getAttributes($data, false);
         $attr_string = $this->buildAttributes($data);
         $classes = explode (' ', $attr['class']);
@@ -177,7 +191,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         // Check for boxes
         $is_box = false;
         foreach (self::$boxes as $box) {
-            if ( strpos ($attr ['class'], $box) !== false ) {
+            if (str_contains($attr['class'], $box)) {
                 $is_box = true;
                 break;
             }
@@ -185,11 +199,11 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
 
         // Check for paragraphs
         $is_paragraph = false;
-        if ( empty($language) === false ) {
+        if (!empty($language)) {
             $is_paragraph = true;
         } else {
             foreach (self::$paragraphs as $paragraph) {
-                if ( strpos ($attr ['class'], $paragraph) !== false ) {
+                if (str_contains($attr['class'], $paragraph)) {
                     $is_paragraph = true;
                     break;
                 }
@@ -211,34 +225,33 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
                 $this->renderODTOpenParagraph ($renderer, $attr ['class'], $style, $attr ['dir'], $language, $is_indent, $is_outdent, true, $attr_string);
                 return 'paragraph';
             }
-        } else if ( $HTMLelement == 'div' ) {
-            if ( $is_box === true ) {
-                $wrap = $this->loadHelper('wrap');
+        } else if ($HTMLelement == 'div') {
+            if ($is_box === true) {
+                $wrap     = $this->loadHelper('wrap');
                 $fullattr = $wrap->buildAttributes($data, 'plugin_wrap');
 
-                if ( method_exists ($renderer, 'getODTPropertiesFromElement') === false ) {
-                    $this->renderODTOpenBox ($renderer, $attr ['class'], $style, $fullattr);
+                if (method_exists($renderer, 'getODTPropertiesFromElement') === false) {
+                    $this->renderODTOpenBox($renderer, $attr['class'], $style, $fullattr);
                 } else {
-                    $this->renderODTOpenTable ($renderer, $attr, $style,  $attr_string);
+                    $this->renderODTOpenTable($renderer, $attr, $style, $attr_string);
                 }
                 return 'box';
-            } else if ( $columns > 0 ) {
-                $this->renderODTOpenColumns ($renderer, $attr ['class'], $style);
+            } else if ($columns > 0) {
+                $this->renderODTOpenColumns($renderer, $attr['class'], $style);
                 return 'multicolumn';
-            } else if ( $is_paragraph === true || $is_indent === true || $is_outdent === true ) {
-                $this->renderODTOpenParagraph ($renderer, $attr ['class'], $style, $attr ['dir'], $language, $is_indent, $is_outdent, false, $attr_string);
+            } else if ($is_paragraph === true || $is_indent === true || $is_outdent === true) {
+                $this->renderODTOpenParagraph($renderer, $attr['class'], $style, $attr['dir'], $language, $is_indent, $is_outdent, false, $attr_string);
                 return 'paragraph';
-            } else if ( $is_pagebreak === true ) {
-                $renderer->pagebreak ();
-                // Pagebreak hasn't got a closing stack so we return/push 'other' on the stack
+            } else if ($is_pagebreak === true) {
+                $renderer->pagebreak();
                 return 'other';
-            } else if ( $is_column === true ) {
-                $this->renderODTOpenColumn ($renderer, $attr ['class'], $style, $attr_string);
+            } else if ($is_column === true) {
+                $this->renderODTOpenColumn($renderer, $attr['class'], $style, $attr_string);
                 return 'column';
-            } else if ( $is_group === true ) {
-                $this->renderODTOpenGroup ($renderer, $attr ['class'], $style);
+            } else if ($is_group === true) {
+                $this->renderODTOpenGroup($renderer, $attr['class'], $style);
                 return 'group';
-            } else if (strpos ($attr ['class'], 'wrap_clear') !== false ) {
+            } else if (str_contains($attr['class'], 'wrap_clear')) {
                 $renderer->linebreak();
                 $renderer->p_close();
                 $renderer->p_open();
@@ -252,9 +265,13 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
     }
 
     /**
-     * render ODT element, Close
+     * Render ODT element close
+     *
+     * @param Doku_Renderer $renderer
+     * @param string        $element  Element type as returned by renderODTElementOpen
+     * @return void
      */
-    function renderODTElementClose($renderer, $element) {
+    public function renderODTElementClose($renderer, $element) {
         switch ($element) {
             case 'box':
                 if ( method_exists ($renderer, 'getODTPropertiesFromElement') === false ) {
@@ -282,7 +299,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         }
     }
 
-    function renderODTOpenBox ($renderer, $class, $style, $fullattr) {
+    public function renderODTOpenBox($renderer, $class, $style, $fullattr) {
         $properties = array ();
 
         if ( method_exists ($renderer, 'getODTProperties') === false ) {
@@ -298,29 +315,26 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
                 $renderer->replaceURLPrefix ($properties ['background-image'], DOKU_INC);
         }
 
-        if ( empty($properties ['float']) === true ) {
-            // If the float property is not set, set it to 'left' becuase the ODT plugin
-            // would default to 'center' which is diffeent to the XHTML behaviour.
-            if ( strpos ($class, 'wrap_center') === false ) {
-                $properties ['float'] = 'left';
+        if (empty($properties['float'])) {
+            if (!str_contains($class, 'wrap_center')) {
+                $properties['float'] = 'left';
             } else {
-                $properties ['float'] = 'center';
+                $properties['float'] = 'center';
             }
         }
 
-        // The display property has differing usage in CSS. So we better overwrite it.
-        $properties ['display'] = 'always';
-        if ( stripos ($class, 'wrap_noprint') !== false ) {
-            $properties ['display'] = 'screen';
+        $properties['display'] = 'always';
+        if (stripos($class, 'wrap_noprint') !== false) {
+            $properties['display'] = 'screen';
         }
-        if ( stripos ($class, 'wrap_onlyprint') !== false ) {
-            $properties ['display'] = 'printer';
+        if (stripos($class, 'wrap_onlyprint') !== false) {
+            $properties['display'] = 'printer';
         }
 
         $renderer->_odtDivOpenAsFrameUseProperties ($properties);
     }
 
-    function renderODTCloseBox ($renderer) {
+    public function renderODTCloseBox($renderer) {
         if ( method_exists ($renderer, '_odtDivCloseAsFrame') === false ) {
             // Function is not supported by installed ODT plugin version, return.
             return;
@@ -328,7 +342,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         $renderer->_odtDivCloseAsFrame ();
     }
 
-    function renderODTOpenColumns ($renderer, $class, $style) {
+    public function renderODTOpenColumns($renderer, $class, $style) {
         $properties = array ();
 
         if ( method_exists ($renderer, 'getODTProperties') === false ) {
@@ -342,7 +356,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         $renderer->_odtOpenMultiColumnFrame($properties);
     }
 
-    function renderODTCloseColumns ($renderer) {
+    public function renderODTCloseColumns($renderer) {
         if ( method_exists ($renderer, '_odtCloseMultiColumnFrame') === false ) {
             // Function is not supported by installed ODT plugin version, return.
             return;
@@ -350,7 +364,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         $renderer->_odtCloseMultiColumnFrame();
     }
 
-    function renderODTOpenParagraph ($renderer, $class, $style, $dir, $language, $is_indent, $is_outdent, $indent_first, $attr=null) {
+    public function renderODTOpenParagraph($renderer, $class, $style, $dir, $language, $is_indent, $is_outdent, $indent_first, $attr = null) {
         $properties = array ();
 
         if ( method_exists ($renderer, 'getODTPropertiesFromElement') === true ) {
@@ -452,7 +466,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         }
     }
 
-    function renderODTCloseParagraph ($renderer) {
+    public function renderODTCloseParagraph($renderer) {
         if ( method_exists ($renderer, 'p_close') === false ) {
             // Function is not supported by installed ODT plugin version, return.
             return;
@@ -460,7 +474,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         $renderer->p_close();
     }
 
-    function renderODTOpenColumn ($renderer, $class, $style, $attr) {
+    public function renderODTOpenColumn($renderer, $class, $style, $attr) {
         $properties = array ();
 
         if ( method_exists ($renderer, 'getODTPropertiesFromElement') === true ) {
@@ -526,7 +540,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         $renderer->_odtTableCellOpenUseProperties($properties);
     }
 
-    function renderODTCloseColumn ($renderer) {
+    public function renderODTCloseColumn($renderer) {
         if ( method_exists ($renderer, '_odtTableAddColumnUseProperties') === false ) {
             // Function is not supported by installed ODT plugin version, return.
             return;
@@ -535,11 +549,11 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         $renderer->tablecell_close();
     }
 
-    function renderODTOpenGroup ($renderer, $class, $style) {
+    public function renderODTOpenGroup($renderer, $class, $style) {
         // Nothing to do for now.
     }
 
-    function renderODTCloseGroup ($renderer) {
+    public function renderODTCloseGroup($renderer) {
         // If a table has been opened in the group we close it now.
         if ( $this->column_count > 0 ) {
             // At last we need to close the row and the table!
@@ -550,7 +564,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         $this->column_count = 0;
     }
 
-    function renderODTOpenSpan ($renderer, $class, $style, $language, $attr) {
+    public function renderODTOpenSpan($renderer, $class, $style, $language, $attr) {
         $properties = array ();
 
         if ( method_exists ($renderer, 'getODTPropertiesFromElement') === true ) {
@@ -622,7 +636,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         }
     }
 
-    function renderODTCloseSpan ($renderer) {
+    public function renderODTCloseSpan($renderer) {
         if ( method_exists ($renderer, '_odtSpanClose') === false ) {
             // Function is not supported by installed ODT plugin version, return.
             return;
@@ -630,7 +644,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         $renderer->_odtSpanClose();
     }
 
-    function renderODTOpenTable ($renderer, $attr, $style, $attr_string) {
+    public function renderODTOpenTable($renderer, $attr, $style, $attr_string) {
         self::$table_entr += 1;
 
         $class = $attr ['class'];
@@ -644,26 +658,22 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         // Get CSS properties for ODT export.
         $renderer->getODTPropertiesNew ($css_properties, 'div', $attr_string, null, true);
 
-        if ( empty($css_properties ['float']) === true ) {
-            // If the float property is not set, set it to 'left' becuase the ODT plugin
-            // would default to 'center' which is diffeent to the XHTML behaviour.
-            //$css_properties ['float'] = 'left';
-            if (strpos ($class, 'wrap_left') !== false ) {
-                $css_properties ['float'] = 'left';
-            } else if (strpos ($class, 'wrap_center') !== false ) {
-                $css_properties ['float'] = 'center';
-            } else if (strpos ($class, 'wrap_right') !== false) {
-                $css_properties ['float'] = 'right';
+        if (empty($css_properties['float'])) {
+            if (str_contains($class, 'wrap_left')) {
+                $css_properties['float'] = 'left';
+            } else if (str_contains($class, 'wrap_center')) {
+                $css_properties['float'] = 'center';
+            } else if (str_contains($class, 'wrap_right')) {
+                $css_properties['float'] = 'right';
             }
         }
 
-        // The display property has differing usage in CSS. So we better overwrite it.
-        $css_properties ['display'] = 'always';
-        if ( stripos ($class, 'wrap_noprint') !== false ) {
-            $css_properties ['display'] = 'screen';
+        $css_properties['display'] = 'always';
+        if (stripos($class, 'wrap_noprint') !== false) {
+            $css_properties['display'] = 'screen';
         }
-        if ( stripos ($class, 'wrap_onlyprint') !== false ) {
-            $css_properties ['display'] = 'printer';
+        if (stripos($class, 'wrap_onlyprint') !== false) {
+            $css_properties['display'] = 'printer';
         }
 
         $background_color = $css_properties ['background-color'];
@@ -706,8 +716,8 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         $frame_props ['horizontal-rel'] = 'paragraph';
         $frame_props ['wrap'] = 'parallel';
         $frame_props ['number-wrapped-paragraphs'] = 'no-limit';
-        if (!empty($frame_props ['float']) &&
-            $frame_props ['float'] != 'center') {
+        if (!empty($frame_props['float']) &&
+            $frame_props['float'] != 'center') {
             $frame_props ['margin-top'] = '0cm';
             $frame_props ['margin-right'] = '0cm';
             $frame_props ['margin-bottom'] = '0cm';
@@ -775,7 +785,7 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         $renderer->_odtTableCellOpenUseProperties($properties);
     }
 
-    function renderODTCloseTable ($renderer) {
+    public function renderODTCloseTable($renderer) {
         $renderer->tablecell_close();
         $renderer->tablerow_close();
         $renderer->_odtTableClose();
@@ -786,16 +796,20 @@ class helper_plugin_wrap extends DokuWiki_Plugin {
         self::$table_entr -= 1;
     }
 
-    protected function getODTCommonStyleName ($class_string) {
-        static $map = array (
-            'wrap_box' => 'Box', 'wrap_danger' => 'Danger', 'wrap_warning' => 'Warning',
-            'wrap_caution' => 'Caution', 'wrap_notice' => 'Notice', 'wrap_safety' => 'Safety',
-            'wrap_info' => 'Info', 'wrap_important' => 'Important', 'wrap_alert' => 'Alert',
-            'wrap_tip' => 'Tip', 'wrap_help' => 'Help', 'wrap_todo' => 'To do',
-            'wrap_download' => 'Download', 'wrap_hi' => 'Highlighted', 'wrap_spoiler' => 'Spoiler',
-            'wrap_leftalign' => 'Left aligned', 'wrap_rightalign' => 'Right aligned',
-            'wrap_centeralign' => 'Centered', 'wrap_justify' => 'Justify', 'wrap_em' => 'Emphasised',
-            'wrap_lo' => 'Less significant');
+    protected function getODTCommonStyleName($class_string) {
+        static $map = [
+            'wrap_box'         => 'Box',            'wrap_danger'      => 'Danger',
+            'wrap_warning'     => 'Warning',        'wrap_caution'     => 'Caution',
+            'wrap_notice'      => 'Notice',         'wrap_safety'      => 'Safety',
+            'wrap_info'        => 'Info',           'wrap_important'   => 'Important',
+            'wrap_alert'       => 'Alert',          'wrap_tip'         => 'Tip',
+            'wrap_help'        => 'Help',           'wrap_todo'        => 'To do',
+            'wrap_download'    => 'Download',       'wrap_hi'          => 'Highlighted',
+            'wrap_spoiler'     => 'Spoiler',        'wrap_leftalign'   => 'Left aligned',
+            'wrap_rightalign'  => 'Right aligned',  'wrap_centeralign' => 'Centered',
+            'wrap_justify'     => 'Justify',        'wrap_em'          => 'Emphasised',
+            'wrap_lo'          => 'Less significant',
+        ];
         $classes = explode(' ', $class_string);
         $name = '';
         foreach ($classes as $class) {

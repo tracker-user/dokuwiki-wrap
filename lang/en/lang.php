@@ -14,6 +14,14 @@ $lang['todo']      = 'todo box';
 
 $lang['clear']     = 'clear floats';
 
+$lang['centeralign'] = 'center align';
+$lang['rightalign']  = 'right align';
+$lang['justify']     = 'justify text';
+$lang['spoiler']     = 'spoiler (hidden text)';
+$lang['indent']      = 'indent';
+$lang['tabs']        = 'tabs';
+$lang['button']      = 'button-style link';
+
 $lang['em']        = 'especially emphasised';
 $lang['hi']        = 'highlighted';
 $lang['lo']        = 'less significant';
